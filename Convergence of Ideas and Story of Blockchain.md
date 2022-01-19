@@ -12,6 +12,8 @@ So, ready? Let's go.
 
 (If you're a genius and instantly know what I am going to do already, please gently click the "Back" Button of your browser ;) )
 
+Warning: This post is really long. If you want to get something fast, skip straight to "Problem formulation", then skip the interlude onto "Putting the ingredients together", and read onward. Refer back to previous section for the background knowledge if you get stuck.
+
 # Ingredient 1: Distributed System
 
 ## Append-Only Log and some functional programming
@@ -41,11 +43,12 @@ Now you may object: but this is crazy! It is going to be horribly inefficient!
 
 There are some possible response to that:
 
-...
+* In terms of data storage, well it is cheap nowadays. More importantly many mission critical systems do have a requirement of having audit trails anyway, so all those data are in fact required and not going to just waste space.
+* In terms of computational power, replaying from the very beginning are of course going to be expensive - and that's why there is usually an optimization applied where we have periodic snapshots of the state and start from there. (Compare to transaction log of Database system and the journal log of a file system)
 
 ## Replicated Database, NoSQL, and Highly Available System
 
-
+TODO
 
 ## Consensus Algorithm
 
@@ -74,25 +77,43 @@ However, it turns out there is a variant of the algorithm that is byzantime faul
 
 # Ingredient 2: Peer to peer
 
-## Overlay network
+## NAT Traversal and Overlay network
 
-Our current internet infrastructure is semi-hierarchical. While the top level is in a way peer to peer (e.g. Peering agreement in internet exchange among the ISPs), the rest of us get to enjoy a hierarchical organization. At the application level too there is an asymmetry with the client-server architecture. While there might be differences in computing power, the more important and relevant different here is that the server has a public IP in order to be reachable anyway from the public internet, while a client do not (it instead get assigned a shared, and perhaps dynamic IP, by the ISP using NAT).
+Our current internet infrastructure is semi-hierarchical. While the top level is in a way peer to peer (e.g. Peering agreement in internet exchange among the ISPs), the rest of us get to enjoy a hierarchical organization. At the application level too there is an asymmetry with the client-server architecture. While there might be differences in computing power, the more important and relevant difference here is that the server has a public IP in order to be reachable anyway from the public internet, while a client do not (it instead get assigned a shared, and perhaps dynamic IP, by the ISP using NAT).
 
-...
+This present a problem in trying to create a peer to peer network if we want anyone with internet access to be able to participate - if they don't have a public IP, they are not reachable from outside by third party. Traditionally this is solved by using a tunnel - the client connect to a specialized server who do have a public IP, and the server routes request to the client as needed. However, our goal here is decentralization, and a centralized server is the last thing we want.
 
+A peer to peer solution is a family of techniques known as *NAT traversal*. As an example of this is done in real application, see IPFS's libp2p documentation on [NAT](https://docs.libp2p.io/concepts/nat/) and [Circuit Relay](https://docs.libp2p.io/concepts/circuit-relay/).
 
+Once peer to peer connectivity can be established, we may then create an overlay network by having our own network protocol layered on top of this base connectivity (or TCP/IP). For example, we may reimplement routing, but this time in an egalitarian, peer to peer fashion: all peer nodes may broadcast the list of peers it have direct connectivity to, all peer node may receive this information from other peers, and all peers may participate in routing by helping to relay a message closer to its target destination. Note that from the point of view of the underlying network, the link between peers is a logical link as it may have to travel through various routers not in the peer to peer network.
+
+At the end of the day, we are able to create our own network, mostly free from the constraint of the public Internet.
 
 ## Gossip Protocol
 
+If a node in the network want to broadcast some public information, one possible method is through the Gossip Protocol. In short, the source randomly (or deterministically) select some subset of the peers it knows to send to. Each peer that received the message then do the same to the peers they know, and so on.
+
 ## Incentives in P2P system
 
+TODO
 
 # Ingredient 3: Cryptography
 
-## Hashing
+Just a quick review.
+
+## (Cryptographically secure) Hashing
+
+A hash is a way to mash up the data of some content and condense it down to a small, constant size. One application is for error checking when downloading file. However, while ordinary hash may protect against accidental error (e.g. bit flip in network), it cannot protect against malicious, deliberate change in the content. A Cryptographically secure hash uses different algorithm to make it difficult to find a *hash collision* - that is any other content that hashes to the same as the target. In more detail we can distinguish between pre-image resistance, second pre-image resistance, and collision resistance.
+
+Applications of such a hash relevant in this article include digital signature and Proof of Work (PoW).
 
 ## Asymmetric encryption/signature
 
+In asymmetric encryption, the encryption and decryption keys are different. An example of this is RSA. There is an algorithm to generate a public/private key pairs. The public key is published publicly and can be considered to be the key owner's *identity*. Someone who wish to send a secret message can use the recipient's public key to encrypt it, then the recipient decrypt using his own private key, that only he knows.
+
+In the case of RSA, the same algorithm can be turned around and become a signature scheme. To authenticate a message, the author of the message compute the "encryption" of the hash/digest of the message using his own private key (note private, not public). The message is sent with this "encryption" appended as a signature. Any receiver of the message can verify by "decrypting" the signature using the public key of the author, and check that it is the same as the hash/digest of the message. Malory would not be able to forge a message and pretend that it comes from the author because he would be unable to compute a signature that passes the check above without knowledge of the private key. (This is cryptographically due to a combination of the collision resistance of the hash as well as what is known as the [RSA problem](https://en.wikipedia.org/wiki/RSA_problem))
+
+(The hash bring down the size of the material to perform RSA operations on, and ensure that the signature size is small even if the payload is large)
 
 # Problem formulation
 
@@ -148,7 +169,7 @@ When human potential is unleashed from what might have been a traumatic event, t
 
 If we take a careful look at the basic flow above, "the banks" ultimately boils down to that database and some application logic governing how those records could be updated. And this is where the problem we posed in the last section enter the picture.
 
-...
+TODO
 
 # Putting the ingredients together
 
@@ -157,23 +178,87 @@ We are now ready to reinvent blockchain by thinking through the steps.
 1. First we use the append-only log as our data architecture. It should, of course, be durable.
 2. Our network architecture is that of a simple, public P2P network with no identity needed to join. Conceptually, the network topology should be that of a mesh/fully-connected network to present the idea that there is no "special" node.
 3. (This is the beginning of the non-trivial part) Any node can submit new log entry to the database by broadcasting. How are we going to deal with malicious entry? First thing we do is to change the semantic of receiving a message/entry: instead we are now only accepting a proposal. There can be multiple proposal for the "next" message/entry, and instead of nodes exchanging their opinion on accept/reject (which is too intricate/subtle with the distributed algorithm thing), all nodes simply note down all proposals without a definitive answer.
-4. Here we introduce two ideas: chaining and Proof-of-Work. Remember that a list can be implemented as a linked list, where each entry contain a pointer/reference to the next/last entry. Also remember in some CPU course that there is an interesting form of addressing scheme known as content-addressable. Since we have the tempering-resistant requirement, an interesting idea is to use a variation of that by using the hash of the whole entry as the pointer/reference. All submitted entry should contain a field with a hash pointing to the previous entry. Then a node's store of all proposed entries will have the data structure of a tree, with the branches representing competing claim, supposedly by different agents, of what they want the next entry to be. Coupled with this idea is the Proof-of-Work problem. There can be many variations in how this problem is implemented, but in the classical example we require that an entry solves the hash-preimage problem. Of course this problem in full is computationally infeasible at all, so we loosen it to only require a partial pre-image. For reasons we will see later, we also make the "difficulty level" tunable. To be precise, the entry should have 4 fields currently: `prev-entry`, `content`, `difficulty`, `pow-solution`. `pow-solution` should be chosen such that `Hash(prev-entry || content || pow-solution)` has at least `difficulty` many leading zeros. Since our hash is secure, the only way to find even a partial preimage, is to use brute-force: enumerate all possible values of `pow-solution` and compute the hash repeatedly, until we find one that satisfy the constraint.
-	1. (Block)
-	2. The cumulative effect of what we did is that we slowed down the production of new blocks to prevent spamming. Also, a crucial property of using chaining with hashing (which is a form of digital signature without identity) is that it already confers some amount of tampering resistance. To see this, imagine Malory wanting to change some record in the middle of a chain. To do so, he need to essentially "rewrite history" and submit a new set of blocks containing his version of the entries, where only the records relevant to his aim are modified while the rest remain the same. However, changing the block content will completely alter the hash, so the next block pointed to by his modified block will also have the hash completely changed, even if the content of that block did not, because the hashing is over the entire block, including the headers. Applying the same logic, Malory will have to recompute all downstream blocks. Due to PoW, the only way to do this is to solve the PoW problem again for each reconstructed/modified blocks. Therefore, the deeper the target block is, the longer it will take to do it. (We will explain why Malory will need to submit the downstream blocks in the first place later)
+4. Here we introduce two ideas: Chaining and Proof-of-Work. Remember that a list can be implemented as a linked list, where each entry contain a pointer/reference to the next/last entry. Also remember in some CPU course that there is an interesting form of addressing scheme known as content-addressable. Since we have the tempering-resistant requirement, an interesting idea is to use a variation of that by using the hash of the whole entry as the pointer/reference. All submitted entry should contain a field with a hash pointing to the previous entry. Then a node's store of all proposed entries will have the data structure of a tree [^tree], with the branches representing competing claim, supposedly by different agents, of what they want the next entry to be. Coupled with this idea is the Proof-of-Work problem. There can be many variations in how this problem is implemented, but in the classical example we require that an entry solves the hash-preimage problem. Of course this problem in full is computationally infeasible at all, so we loosen it to only require a partial pre-image. For reasons we will see later, we also make the "difficulty level" tunable. To be precise, the entry should have 4 fields currently: `prev-entry`, `content`, `difficulty`, `pow-solution`. `pow-solution` should be chosen such that `Hash(prev-entry || content || pow-solution)` has at least `difficulty` many leading zeros. Since our hash is secure, the only way to find even a partial preimage, is to use brute-force: enumerate all possible values of `pow-solution` and compute the hash repeatedly, until we find one that satisfy the constraint.
+	* The cumulative effect of what we did is that we slowed down the production of new blocks to prevent spamming. Also, a crucial property of using chaining with hashing (which is a form of digital signature without identity) is that it already confers some amount of tampering resistance. To see this, imagine Malory wanting to change some record in the middle of a chain. To do so, he need to essentially "rewrite history" and submit a new set of blocks containing his version of the entries, where only the records relevant to his aim are modified while the rest remain the same. However, changing the block content will completely alter the hash, so the next block pointed to by his modified block will also have the hash completely changed, even if the content of that block did not, because the hashing is over the entire block, including the headers. Applying the same logic, Malory will have to recompute all downstream blocks. Due to PoW, the only way to do this is to solve the PoW problem again for each reconstructed/modified blocks. Therefore, the deeper the target block is, the longer it will take to do it. (Malory need to broadcast these "fake" blocks and get it accepted by those nodes, and as the cannonical branch too, because for data read, client may contact any node in the P2P network)
+	* This still leave us with a question - why is it called a *Block*chain? This is because the fundamental unit of data in the network is a block. A block is a header (consisting of stuff required to make it work like the PoW, link to previous entry, other important metadata, etc) plus the content. But here is the thing: the content in this case usually *batched*. At the application/user level, anyone can submit a transaction containing some user level data (conforming to the append-log data model) by contacting any node in the P2P network who accept it. These node will collect them into what is called a *mempool*, and then periodically select some subset of the entries there to add to a new block, and then it will try to link it with the latest block, solve the PoW problem, then broadcast it. [^uncle]
 5. And this is where the clever steps is. We again do two things at once: impose an economic incentive to produce new, valid blocks, and to add an implicit condition that the cannonical history is the longest branch in the tree.
+    * For the economic incentive, we stipulate that the entity who mined a block (that is, produced a valid block and solved the PoW for that block successfully), should receive a monetary reward. To this end there should be an additional field in the block indicating who mined the block. Upon a block being accepted as cannonical in the network, payment should be made to the miner. (As you will see in the last section, *how* this payment is made is done in a really clever manner) Basically, the miner sign his own paycheque.
+    * Remember back when we say that there is no explicit accept/reject of any blocks sent by any one in the network (as long as it passes the validity tests). We then reasoned our way to the possible blocks having the structure of a tree. We then now declare that honest nodes/the spec/the official implementation should consider that the longest branch is the cannonical one. So that if any client query an honest node for a state, the node should compute the current state by replaying transactions along the cannonical branch.
+    * Why would this work to make the blockchain temper-proof? Because the rate of growth of a branch is proportional to the computing power working on growing that branch, which in turn is proportional to the number of nodes working on it (assuming that each node have equal computing power). If a majority of nodes are honest and all work on the longest branch, then even if the rest collude in a conspiracy plot to takeover the network, in the long term the alternative branch's growth will be out-paced by the main branch.
 
+## Note on Block Confirmation
 
+We already saw that there is no explicit accept/reject of a valid block. While the longest branch rule implicitly specify which block is cannonical, one may ask whether the longest branch can change over time. Together with the observation that changing blocks deeper back in the past (by creating a branch/fork) takes more effort, blockchain system often employ the following rule:
+
+> A block is considered **confirmed** if it is at least n blocks deep in the longest branch from the most recent block.
+
+There is a more theoretical rationale for this setting. Some analysts have performed mathematical modelling of an attacker, and they found out that the probability of success of an attack that target specific block by immediately forking and trying to overtake the main branch (at least in the short term) decreases exponentially as the block get burried deeper in the branch. Therefore, the parameter `n` is a security parameter that is tuned to make this probability low, while balancing against the time delay that comes from having to wait for newer blocks to pile on.
+
+See: [Bitcoin wiki](https://en.bitcoin.it/wiki/Irreversible_Transactions#Attack_vectors), [Ethereum Blog](https://blog.ethereum.org/2015/09/14/on-slow-and-fast-block-times/).
+
+## Note on Block Validation
+
+We have repeatedly mentioned "valid block". Because any one can propose a block, and malicious actor cannot be ruled out, we need some safeguard in place.
+
+A block is subject to a bunch of validation rules. This include, but are not limited to:
+
+* The PoW have to be solved properly.
+* The content in the block should pass any application-specific check
+  * e.g. if the transactions are signed by the initiator, then those signatures should be verified
+  * e.g. The format (if there is one imposed by the application) should be valid
+* The transactions should transit the *global state machine* to a valid next state. (This is important, see the last section)
+* And any additional checks for implementing various chain-related mechanisms.
+
+When the rest of the blockchain is correctly implemented, these properties then become something gauranteed as part of the temper-resistance of the blockchain as a consequence of the consensus. The reason is that if all honest nodes follow these rules (we have no reason to expect malicious node to play by these rules), then all blocks in the cannonical branch would have already passed these checks to be accepted by honest nodes in the first place.
+
+## Note on Dynamic Difficulty
+
+Now let's address this. The reason is that "computing power" is also dynamic. For instance new and better CPU/GPU/ASIC may come out over the years, changing the time required to solve a PoW problem. Another reason is that since the production rate of blocks is proportional to the number of honest agents [^pooling], if more and more people join the blockchain (as Miner), the time to produce a block may change.
+
+Since our goal is to maintain a roughly constant average time to produce a block, preferrably one that balances the need to combat spam versus having fast block time to improve user experience (i.e. time from submitting a transaction to having that be confirmed), it makes sense to have the difficulty adjustable. In fact we would bake in some form of negative feedback/PID style control theory in - take the moving average of the block time for the most recent blocks, and increase difficulty if the time is shorter than the target average, and vice versa.
+
+This can again be implemented by using the general philosophy of how we incorporate new rules into the system's spec so that the consensus mechanism takes care of the rest. In particular, we further add a field called `timestamp` into the block so that the time to produce blocks can be estimated in a cannonical way. Then we specify that the block difficulty must not be less than the bar calculated according to the moving average law above in order to be accepted. If a majority of agents observe this rule in validation, cheaters would generally not be able to get away with using a lower difficulty. On the other hand, economic efficiency would ensure that honest agent would attempt to use the lowest permitted difficulty possible.
 
 # The Final ingredient: Game Theory
 
+Notice that we still haven't specified/used any consensus algorithms from ingredient 1. But we don't have to - why? If we assume that the majority of nodes are honest, then they would all work on the cannonical branch, and this branch will grow fast enough that its cannonical status cannot be contested (at least among the honest nodes themselves). Thus instead of an algorithm, Consensus is implicitly reached by nodes all following the same rule to reach the same outcome, under an economic incentive to do work.
+
+But this doesn't completely answer the question. Why should a majority of node be honest?
+
+Turns out, there is no intrinsic reason to. However, if the network started out with such a majority, and provided that the network size is reasonably large, then this majority tends to be stable over time. And this is because of a concept in Game Theory known as Nash equilibrium.
+
+In short, if a miner is honest, then he can expect to get the normal financial reward for participation. if he expects the majority in the network to also be honest, then there is no incentive for him to unilaterally become dishonest (say, by joining the largest dishonest group) as he will waste electricity to run the program, but will not receive rewards as his blocks won't be accepted as cannonical (since the dishonest group is still a minority), and this will result in a financial net loss.
+
+The way this equilibria can be broken (in the game theoretic context, not counting other attack vectors) would be for a sufficiently large group to collude and become dishonest together, overpowering the honest group. Hopefully, this is hard enough to be infeasible in practise if your network is large. (Unless you have nation state level of resources and even then - we are talking about overpowering the combined computing power of the honest group in the *entire network*, which is international and contains player as diverse as individual miner to large corporations using data centers to mine)
+
+Reference: [CoinMonks article](https://medium.com/coinmonks/blockchain-consensus-protocols-game-theory-fc3504e4da99)
+
+# Emdedding cryptocurrency into a blockchain
+
+Gas
 
 ## A small note: Where did the economies go?
 
 (Not a pun on the miserable state of real world economy, but, ya, I am sorry.)
 
 
-# Emdedding cryptocurrency into a blockchain
+# Types of node - Miner vs Validator, and Light client
 
 
 # Conslusion
+
+This has been an unusually long post. Sadly, even then, we've only touched the surface of the blockchain world. However, if you made it this far and thoroughly thought through it, you should now have a solid grasp of the fundamentals, which make it possible to read other technical articles in the blockchain world without getting completely lost instantly.
+
+# Post in this series
+
+1. Convergence of Ideas and the Story of Blockchain (this post)
+2. Wallets in cryptocurrencies
+3. Smart Contracts, Tokens, Decentralized Apps/DApp, and DAO
+4. Advanced Topics: Layer 2, Sidechain, oh my!
+
+[^tree]: We can rule out forest by hardcoding a special root node, aka the Genesis Block, into the blockchain program and asking that programs only recognize blocks whose lineage can be traced back to having this block as an ancester. The program should suspend some of the usual validation rules for this Genesis Block as needed. Note that together with constraint on the data structure (each block have exactly one field for `prev-entry`), cycles and DAG are also ruled out.
+
+[^uncle]: Astute reader may point out that an unlucky node may have a stale pointer to the "latest" entry since producing new blocks take time. That is, one may have the "right" pointer at the moment the production start, but get snooped as a new legitimate block appear in the middle of solving PoW. Different Blockchain solves this problem in a different way. For instance, Ethereum solves this by having the concept of an *uncle* - subsequent blocks can, aside from the link to the previous block, also add links to these branched, but otherwise legitimate, blocks. This makes sure that the transactions there are still considered as cannonical. Ethereum incentivise this behavior by allowing partial reward.
+
+[^pooling]: You may think that this almost, but doesn't work due to the "quantum" problem - that only one miner can work on a single block, even if the PoW is difficult. This can be solved somewhat using a *mining pool*. A mining pool is like a cooperative, where people come together to "pool" their computing power. The owner of the pool is the one that actually proposes block in the blockchain system, but it delegates the PoW problem to the Workers in the pool like in the Distributed Computing Projects using BOINC for Folding@home. Since PoW is an embarassingly parallel problem, we can break it down into very small pieces (say by segmenting the "search space") and hand it out to the Workers. The owner should distribute the reward to the Workers according to their contribution (There are many possible scheme for calculating the share).
 
