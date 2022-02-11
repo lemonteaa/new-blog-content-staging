@@ -235,7 +235,39 @@ Reference: [CoinMonks article](https://medium.com/coinmonks/blockchain-consensus
 
 # Emdedding cryptocurrency into a blockchain
 
-Gas
+This still leaves us with one final, perhaps most important question: how do miners get paid? The title of this section is the answer.
+
+Cryptocurrency in this context is just a very particular application of blockchain, one that is necessary to its basic functioning (yes, there is a recursive/self-referential reasoning involved here, and this is what makes it clever, but also what makes cryptocurrency "The ghost of blockchain")
+
+## Distributed Ledger
+
+Imagine trying to model a bank using blockchain. How'd we do it?
+
+* Bank Account: Just an ID, that is, a public key. The owner of the corresponding private key have complete control over the account.
+* Account Balance: Just a number (denominated in the currency of the crypto). Also, "just a database record" (see the Interlude).
+* The Global State Machine:
+  * State: A map of `bank account -> account balance`.
+  * Transition: A fund transfer operation
+
+```
+{
+  "from": <sender bank account>, 
+  "to": <receiver bank account>, 
+  "amount": <a number>
+}
+```
+* State Update is what common sense would dictate (note that negative account balance is not allowed - this can be enforced as an application specific rule during block validation)
+* To prevent unauthorized fund transfer, transaction must be signed by the owner of the account in the `sender` field of the transaction. That is, only the owner of an account can transfer fund out of that account.
+
+And that'd be it (!). While nothing is "real", if the consensus in the network says that you have this amount of money, then for some people that's about as good as real (at least, compared to the counterpart of a real world bank as elaborated in the interlude section).
+
+(Note that one notable downside of this implementation is that the ledger is public - everyone can see the flow of money and who owns how much money. In some application, such as the treasury of NGO, it can be an advantage like having transparency and accountibility. But for most people this is an obvious cons. Therefore it can be important to use it in an annoymous manner so that people only know that "someone" owns this amount of money, but are unable to link it back to real world identity)
+
+## Miner Fees and Printing Money
+
+## Circular logic
+
+## Note on the Role of Gas fee
 
 ## A small note: Where did the economies go?
 
