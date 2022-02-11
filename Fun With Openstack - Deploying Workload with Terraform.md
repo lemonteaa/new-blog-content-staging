@@ -366,6 +366,7 @@ https://learn.hashicorp.com/tutorials/terraform/cloud-init
 
 See https://docs.openstack.org/cinder/rocky/configuration/block-storage/volume-encryption.html and https://specs.openstack.org/openstack/nova-specs/specs/queens/implemented/libvirt-qemu-native-luks.html
 
+See also https://github.com/dwannamaker-onr/openstack-queens-barbican-guide and https://www.cryptops.com/
 
 ### Bastion Host
 
@@ -375,6 +376,9 @@ VPNaaS is a relatively obscure add-ons to Openstack Neutron, that adds ability t
 
 Unfortunately, the VPNaaS software seems rather fragile from my personal experience trying to deploy it. Therefore, an alternative is to DIY. We follow the example at [UKCloud](https://docs.ukcloud.com/articles/openstack/ostack-how-configure-ipsec-vpn.html), but convert the heat template into terraform.
 
+## Other References
+
+- [Terraform and NREC: Part IV - Pairing with Ansible](https://uh-iaas.readthedocs.io/terraform-part4.html)
 
 
 End
