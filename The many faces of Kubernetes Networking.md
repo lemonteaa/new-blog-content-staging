@@ -155,7 +155,7 @@ The no NAT requirement is because we would be using NAT for higher level stuff.
 
 # Basic Setup
 
-https://linux-blog.anracom.com/2017/11/14/fun-with-veth-devices-linux-bridges-and-vlans-in-unnamed-linux-network-namespaces-iii/
+- Main reference (very detailed and highly recommended to read the whole series): https://linux-blog.anracom.com/2017/11/14/fun-with-veth-devices-linux-bridges-and-vlans-in-unnamed-linux-network-namespaces-iii/
 
 
 Let's start with a toy example: single node cluster, multiple Pods inside.
@@ -285,27 +285,44 @@ A very detailed guide
 
 (TODO: move into relevant sections)
 
-https://sookocheff.com/post/kubernetes/understanding-kubernetes-networking-model/
-https://blog.neuvector.com/article/advanced-kubernetes-networking
-https://itnext.io/kubernetes-service-load-balancing-kube-proxy-and-iptables-da3ebf1c802a
+- https://sookocheff.com/post/kubernetes/understanding-kubernetes-networking-model/
+- https://blog.neuvector.com/article/advanced-kubernetes-networking
+- https://itnext.io/kubernetes-service-load-balancing-kube-proxy-and-iptables-da3ebf1c802a
 
-https://itnext.io/an-illustrated-guide-to-kubernetes-networking-part-1-d1ede3322727
-https://itnext.io/an-illustrated-guide-to-kubernetes-networking-part-2-13fdc6c4e24c
-https://itnext.io/an-illustrated-guide-to-kubernetes-networking-part-3-f35957784c8e
+A Three part series
+- https://itnext.io/an-illustrated-guide-to-kubernetes-networking-part-1-d1ede3322727
+- https://itnext.io/an-illustrated-guide-to-kubernetes-networking-part-2-13fdc6c4e24c
+- https://itnext.io/an-illustrated-guide-to-kubernetes-networking-part-3-f35957784c8e
 
-http://ifeanyi.co/posts/linux-namespaces-part-4/
+More:
+- http://ifeanyi.co/posts/linux-namespaces-part-4/
 
-https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/openstack-cloud-controller-manager/using-openstack-cloud-controller-manager.md
+- https://github.com/kubernetes/cloud-provider-openstack/blob/master/docs/openstack-cloud-controller-manager/using-openstack-cloud-controller-manager.md
 
-https://docs.google.com/presentation/d/13EQKZSQDounPC1I6EC4PmqaRmdCrpT3qswQJz9KRCyE/edit#slide=id.g6e5f5d8b6a_2_0
-(Kubernetes Training Slides)
+- https://docs.google.com/presentation/d/13EQKZSQDounPC1I6EC4PmqaRmdCrpT3qswQJz9KRCyE/edit#slide=id.g6e5f5d8b6a_2_0 (Kubernetes Training Slides)
 
-https://fedoramagazine.org/network-address-translation-part-2-the-conntrack-tool/
+- https://fedoramagazine.org/network-address-translation-part-2-the-conntrack-tool/
 
-https://k8s.networkop.co.uk/services/nodeport/
-(Research group that have concise but comprehensive documents on how things work on just about every aspect of k8s networking. Does not shy away from hard details. Highly Recommended Read)
+- https://k8s.networkop.co.uk/services/nodeport/ (Research group that have concise but comprehensive documents on how things work on just about every aspect of k8s networking. Does not shy away from hard details. Highly Recommended Read)
 
-https://josedonizetti.github.io/cni/namespace/veth/linux/network/2017/10/14/container-networking-veth.html
+- https://josedonizetti.github.io/cni/namespace/veth/linux/network/2017/10/14/container-networking-veth.html
+
+- https://github.com/cncf/presentations/blob/master/kubernetes/README.md (A list of presentations, quite recommended)
+- https://thenewstack.io/hackers-guide-kubernetes-networking/
+- https://www.tigera.io/blog/advertising-kubernetes-service-ips-with-calico-and-bgp/
+
+Linux and General Networking
+- https://networkingnerd.net/2012/01/05/double-nat-nat/
+- https://goyalankit.com/blog/linux-bridge (A very classical article)
+- https://olegkutkov.me/2019/03/24/getting-linux-routing-table-using-netlink/
+- https://networkdirection.net/articles/routingandswitching/vxlanoverview/vxlanaddresslearning/
+- https://kernelnewbies.org/Bridging_and_Forwarding
+- https://www.man7.org/linux/man-pages/man8/ip-neighbour.8.html
+- https://www.man7.org/linux/man-pages/man8/bridge.8.html
+- https://unix.stackexchange.com/questions/93412/difference-between-ifconfig-and-ip-commands
+
+> Just to add some bits to the answer by pilona. Around 2005 a new mechanism for controlling the network stack was introduced - netlink sockets.
+To configure the network interface iproute2 makes use of that full-duplex netlink socket mechanism, while ifconfig relies on an ioctl system call. Here are 2 main papers on motivation behind netlink and usage of rtnetlink.
 
 
 [^1]: Node to node communication is a given assumption of the cluster itself. Pod to node communication is not specified because of the relation between Node and Pod: Node supervise the Pod and so the Pods are visible to the Node, but not vice versa - in normal situation they should be oblivious.
