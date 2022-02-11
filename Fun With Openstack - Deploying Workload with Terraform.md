@@ -364,6 +364,9 @@ https://learn.hashicorp.com/tutorials/terraform/cloud-init
 
 ### Metadata, Barbican, and Passing Secrets Securely to VM
 
+See https://docs.openstack.org/cinder/rocky/configuration/block-storage/volume-encryption.html and https://specs.openstack.org/openstack/nova-specs/specs/queens/implemented/libvirt-qemu-native-luks.html
+
+
 ### Bastion Host
 
 ### VPNaaS and Hybrid Cloud
