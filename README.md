@@ -10,6 +10,9 @@ This is a staging area where I put my working drafts of posts planned for the re
 - [The many faces of Kubernetes Networking](https://github.com/lemonteaa/new-blog-content-staging/blob/main/The%20many%20faces%20of%20Kubernetes%20Networking.md)
 - [Leaflet, PostGIS, and mapbox](https://github.com/lemonteaa/new-blog-content-staging/blob/main/Leaflet%2C%20PostGIS%2C%20and%20mapbox.md)
 - [Adopting MLOps incrementally - mlflow as MLOps served a la carte](https://github.com/lemonteaa/new-blog-content-staging/blob/main/Adopting%20MLOps%20incrementally%20-%20mlflow%20as%20MLOps%20served%20a%20la%20carte.md)
+- [Hitchhiker's Guide to OpenStack](https://github.com/lemonteaa/new-blog-content-staging/blob/main/Hitchhiker's%20Guide%20to%20OpenStack.md)
+- [Experience Sharing and Opinion Piece: DIY Clojure Web Framework? Lesson Learned](https://github.com/lemonteaa/new-blog-content-staging/blob/main/Experience%20Sharing%20and%20Opinion%20Piece%20DIY%20Clojure%20Web%20Framework%20Lesson%20Learned.md)
+
 
 ## See Also
 
