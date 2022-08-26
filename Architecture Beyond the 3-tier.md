@@ -47,6 +47,16 @@ Here are some ideas proposed by other people over the years:
 
 ## Dealing with Concurrency
 
+A second problem - concurrency, is traditionally known to be difficult in CS. (One interesting tidbit is that concurrency spans across the whole tech stack - we have concurrency models inside the CPU's out-of-order optimization, we have concurrency at the OS level via threads and scheduling, and we have concurrency at the upper layer as well)
+
+Although traditional RDBMS solved a part of it with ACID transactions (caveat: provided one use it correctly), these thorny issues re-emerge when one need to conduct actions *across systems components*, which can be inevitable in many cases.
+
+As reasoning about concurrency in general is hard (interleaving), it would be nice if there are systematic design patterns that are known to work well. Well here are some that I particularly like:
+
+- Idempotency + Distributed Saga + Transactional Outbox: Coming from the microservice/event-driven world, these solutions are still applicable even if you don't go all in on microservice.
+  - Problem formulation: You want to do a business transaction (*not* just a DB transaction), that involves doing a sequence of actions on different places. These actions can be normal DB writes, as well as external API calls outside of your control. You want it to have as much of the usual ACID properties as it can.
+
+
 
 ## Interlude: Pattern in REST API
 
@@ -96,3 +106,45 @@ Here are some ideas proposed by other people over the years:
 - live in the present, but look at the future
 - long term impact of progress
 
+## References
+
+### General
+
+- https://www.martinfowler.com/books/eaa.html
+- [POSA](https://en.wikipedia.org/wiki/Pattern-Oriented_Software_Architecture)
+- https://www.youtube.com/watch?v=Y6B4jYBR4Y8 (Talking Architecture With Kevlin Henney - Wix Engineering Tech Talks)
+- https://www.youtube.com/watch?v=1VLN57wJAcU (Fundamental Principals of Software - David Nolen)
+- https://www.youtube.com/watch?v=0AkoddPeuxw (Leprechauns of Software Engineering by Laurent Bossavit)
+- https://www.youtube.com/watch?v=ROor6_NGIWU (The Language of System - Rich Hickey)
+- http://videos.ncrafts.io/video/223268149 (NewCrafts Videos - Laurent Bossavit - Perpetual Infancy - why software doesn't seem to be growing up)
+
+### Append-Only Log
+
+- https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying
+
+### Microservice Patterns on Concurrency
+
+- https://yos.io/2017/10/30/distributed-sagas/
+- https://pradeepl.com/blog/transactional-outbox-pattern/
+
+### APIs
+
+- https://cloud.google.com/apis/design/design_patterns
+- https://www.linkedin.com/pulse/what-we-learned-webhooks-after-integrating-100-apis-iacobelli/
+- https://apisyouwonthate.com/blog/picking-api-paradigm
+
+### DevOps Concerns
+
+- https://www.eightypercent.net/post/layers-in-the-stack.html (Anatomy of a Modern Production Stack)
+
+### Others
+
+- https://docs.microsoft.com/en-us/azure/architecture/patterns/strangler-fig
+- https://cloud.google.com/architecture/hybrid-and-multi-cloud-architecture-patterns
+- https://jasonformat.com/islands-architecture/
+- https://roca-style.org/
+- https://tonsky.me/blog/the-web-after-tomorrow/
+- https://www.stephenzoio.com/free-monads-and-event-sourcing/
+- https://deque.blog/2017/07/06/hexagonal-architecture-a-less-declarative-free-monad/
+
+(TODO: I still haven't included the *main* reference for free monad as web architecture)
