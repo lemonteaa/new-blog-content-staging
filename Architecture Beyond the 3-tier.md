@@ -55,7 +55,18 @@ As reasoning about concurrency in general is hard (interleaving), it would be ni
 
 - Idempotency + Distributed Saga + Transactional Outbox: Coming from the microservice/event-driven world, these solutions are still applicable even if you don't go all in on microservice.
   - Problem formulation: You want to do a business transaction (*not* just a DB transaction), that involves doing a sequence of actions on different places. These actions can be normal DB writes, as well as external API calls outside of your control. You want it to have as much of the usual ACID properties as it can.
-
+  - A naive solution may involves just doing external API calls in a DB transaction. But what if it fails? We will need a way to rollback the api call as well. There have been idea along the line of a long-lived, distributed transaction, however, those requires special transaction coordinator, and requires that all participants conform to a rather strict spec.
+  - A more adaptable method is to intrepret these requirement more loosely - instead of rollback, do a *compensating transaction* that undo the effect, but let the fact that both happened remains on record.
+  - Idempotency is a simple idea, but very versatile in its application. With idempotency, you are free to retry as many times as you want until it succeed - we no longer need to worry about whether a non-response means a true failure, or just the network dropping packets. Its prominance perhaps comes from the detail that in distributed system's event bus/append-only log (two of the most important reuseable components), delivering messages *at-least-one* is easier to achieve than *exactly-once*.
+  - Finally, the Transactional outbox can be considered the final missing piece of the puzzle. The problem it solves is this: observe that the main problem with RDBMS's transaction is that it only works within the boundary of the DB itself - *anything* outside the DB and you're out. But isn't the message queue/append-only log also a component outside the DB? Thus if the saga is initiated by a DB transaction, we'd be back at square one. Well, the answer provided by this pattern is to have a special outbox table in the DB that act kind of like the "in-DB shadow" of the queue - because it is in DB, including it in the DB transaction works. External components can then pick up on the outbox and mirror it in the actual queue asychroniously.
+    - Why not have the external component scan the relevant tables directly? - Mainly for semantics, to provide a unified point of contact.
+    - And won't performance be an issue? Yes, that's why a scalable implementation would use special CDC (Change Data Capture) technique specific to each DB. This involves interacting more directly with the low level internals of the DB.
+- A different direction focuses on the *append-only log* abstraction, provided by generic components such as Kafka.
+  - Using *consensus algorithms* in distributed system, it is possible to have strong consistency in the order of messages added to such a log.
+  - A rather radical thought is that the order of messages in such a log can be considered the authoritative source of truth about the evolution of states of the whole system - this idea again have seen a long and deep influence, reaching to the world of blockchain even.
+  - As an example, the *xtdb* database in Clojure (which share many ideas with Datomic), take this idea and uses the log coupled with an external document store (and an indexer that scan through the log to improve read performance).
+  - One pattern (from the book "Designing Data Intensive Application") is to somehow combine this with distributed saga. An asynchronous, restartable worker scan the log, and do some idempotent work for each message - in order. The result is saved to another topic in the log.
+  - This can be made scalable - partition/shard the log using domain specific knowledge to gaurantee that ordering won't affect the outcome. Example: different users contend for reserving (locking exclusive access to) some resources. If these resources are independent, we can shard by the resource id: order of reserving different resources are irrelevant compared to the order of reserving the same resources.
 
 
 ## Interlude: Pattern in REST API
@@ -148,3 +159,5 @@ As reasoning about concurrency in general is hard (interleaving), it would be ni
 - https://deque.blog/2017/07/06/hexagonal-architecture-a-less-declarative-free-monad/
 
 (TODO: I still haven't included the *main* reference for free monad as web architecture)
+
+(Note: Many of the idea in the first half of this article are already covered by the book "Designing Data Intensive Application". I just thought it may be worth rethinking them from the perspective of higher level software/system architecture.)
