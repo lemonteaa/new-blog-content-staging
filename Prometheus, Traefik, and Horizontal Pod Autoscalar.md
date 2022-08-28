@@ -53,7 +53,7 @@ We will use the [Prometheus Operator](https://prometheus-operator.dev/). Be care
 
 ## What is Traefik?
 
-TODO
+(TODO)
 
 It is a cloud-native ingress/fronting server. Think counterpart of `nginx` (which is a reverse proxy/HTTP server).
 
@@ -64,7 +64,7 @@ In this article we will stick to CRD IngressRoute Provider - since the pattern a
 
 ## Installing Traefik
 
-TODO
+(TODO)
 
 (Quick Note: Traefik version 1 and 2 are completely different. Although many still love the version 1, for the future choosing version 2 is necessary. Also be careful that the "official" helm chart still points to version 1, so you'd need to specially source the repo from what the doc provide.)
 
@@ -72,14 +72,73 @@ Traefik's Documentation can be tricky to get around. Reading the Traefik helm ch
 
 In short:
 
-- Traefik as a binary lives inside a Pod/isolated env. The "Static Configuration" is the usual configuration in the sense of a plain program - it can be sourced from command line argument, env. variable, config file, etc. However due to Traefik's special nature this config is limited in scope - essentially to global/boostrapping configs.
+- Traefik as a binary lives inside a Pod/isolated env. The "Static Configuration" is the usual configuration in the sense of a plain program - it can be sourced from command line argument, env. variable, config file, etc. However due to Traefik's special nature this config is limited in scope - essentially to global/boostrapping configs. (one notable static configuration is the `EntryPoints`)
 - The helm chart already comes with a set of command line arguments supplied that should be enough for normal use case. In particular, prometheus metrics are enabled, dashboard is also enabled.
   - Should you need to, you can add more to it via `additionalCommandLineArguments`. If doing quick one-liner on `helm` command line, use the TODO syntax.
-- A set of default container ports are defined: metrics (for prometheus), traefik (internal), web (the actual ingress), websecure (https counterpart of web). From `traefik` program's point of view these are the only things it know. Then, the helm chart define k8s services to expose these port (selectively - switched by the argument TODO), but may map them to a different port on the outside.
-
-TODO explain why the official commands given to enable metrics and dashboard "works"
+- A set of default `EntryPoints` are defined: metrics (for prometheus), traefik (internal), web (the actual ingress), websecure (https counterpart of web). For each of these a corresponding container port is created in the kubernetes pod in the manifest. From `traefik` program's point of view these are the only things it know. Then, the helm chart define k8s services to expose these port (selectively - switched by the argument `exposePorts`), but may map them to a different port on the outside.
 
 > Hint: In Traefik's doc, choose the `yaml` format - the other formats are for other use cases and not applicable to us.
+
+(TODO explain why the official commands given to enable metrics and dashboard "works")
+
+Now if you just run the basic install you won't be able to directly smoke test it as kubernetes deployment are not exposed automatically unless the chart author specifically used something like `LoadBalancer`. However, if you're like me and doing exercise in any environment without cloud integration, that wouldn't work - `externalIP` in `kubectl get svc...` will show pending forever. (`LoadBalancer` is backed up a a slew of plugins that integrates against various cloud vendor by calling their API to provision a cloud based LB + public IP etc)
+
+Instead we'll do something a bit wacky - expose the Traefik dashboard, api, as well as the metric through...... Traefik itself (just like how you'd expose normal kubernetes workload/web app). This recursion is known as "Traefik-ception" in the official Traefik Doc.
+
+Now let's look at the additional config we apply:
+
+```yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: traefik-dashboard
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: PathPrefix(`/api`) || PathPrefix(`/dashboard`)
+    kind: Rule
+    services:
+    - name: api@internal
+      kind: TraefikService
+```
+
+This is using the CRD IngressRoute provider and will be picked up by Traefik as dynamic configuration. the `entryPoints` here refers to the one defined in the static configuration of Traefik (for simplicity the ports in kubernetes manifest used the same name but it does *not* refers to it as Traefik is a standalone binary and doesn't know about the "outside world"). If you further check the definition of the CRD, you'll notice that there is two `kind` of services allowed: `TraefikService`, or `Service` (that references a native kubernetes service). `api@internal` is one of the built-in Traefik Service.
+
+For contrast, below is an example of exposing a normal webapp:
+
+```yaml
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: whoami
+spec:
+  entryPoints:
+    - web
+  routes:
+  - match: Host(`whoami.docker.localhost`) || PathPrefix(`/whoami`)
+    kind: Rule
+    middlewares:
+    - name: strip-whoami-prefix
+    services:
+    - name: whoami
+      port: 80
+---
+apiVersion: traefik.containo.us/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-whoami-prefix
+spec:
+  stripPrefix:
+    prefixes:
+      - /whoami
+```
+
+(The kubernetes service is also named `whoami`)
+
+This file illustrate a common pattern in ingress - if we cannot modify the domain name and must use a subpath for multi-tenancy (e.g. `/api/hello` in the web app become `/whoami/api/hello` on the outside). Then we must add the `stripPrefix` middleware in Traefik to perform this translation, otherwise the internal web app will see `/whoami/api/hello` in the URL and become confused.
+
+You may expose the metric endpoint temporarily to examine it yourself. However if you check the dashboard you will see two metric routes (!). This is because the default static configuration in the helm chart already setup everything, but with a catch - the containerPort `metric` (9100) is *not* exposed in the service. The reason is security - we don't want outside third party to scrape our data. This doesn't pose a problem: as prometheus is also installed in-cluster, it is actually a pod-to-pod communication and so will work without exposing ports.
 
 ## Letting Prometheus Monitor Traefik metrics
 
@@ -116,18 +175,80 @@ You can then go to Grafana and import a Traefik dashboard. I used [this one](htt
 
 ## HPA on custom metrics
 
+For this section, we simply follows https://livewyer.io/blog/2019/05/28/horizontal-pod-autoscaling/
 
-## Bonus: Node Autoscaling
+I think we need to enable the `metric-server` addon in `microk8s`.
 
+Then, install [kube-metrics-adapter](https://github.com/zalando-incubator/kube-metrics-adapter); we do need to first provide the right url for the prometheus service (example using kubernetes internal dns name):
+
+```
+- --prometheus-server=http://prometheus.monitoring.svc.cluster.local:9090
+```
+
+For the actual HPA, citing the article:
+
+```yaml
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: hpa-test
+  namespace: dev
+  # metric-config.<metricType>.<metricName>.<collectorName>/<configKey>
+  # <configKey> == query-name
+  annotations: metric-config.external.prometheus-query.prometheus/autoregister_queue_latency: autoregister_queue_latency{endpoint="https",instance="192.168.99.101:8443",job="apiserver",namespace="default",quantile="0.99",service="kubernetes"}    
+spec:
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: test
+  minReplicas: 1
+  maxReplicas: 10
+  Metrics:
+  - type: External
+    external:
+      metric:
+        name: prometheus-query
+        selector:
+          matchLabels:
+            query-name: autoregister_queue_latency
+      target:
+        type: AverageValue
+        averageValue: 1
+```
+
+This allow us to supply our own `PromQL` query for the metric to target.
+
+Some example of HPA use case: scaling based on SLO (Service Level Objective) such as 99-th percentile response time (which may come from response time metric from Traefik, after processing by Prometheus).
+
+## Bonus: Cluster Autoscaling (CA)
+
+Note that CA and HPA are two different things:
+
+- HPA scale the number of replica of a Pod. It works at a fine-grained level, but has the limitation that if your number of node doesn't change, then the actual physical amount of resources doesn't either. Used alone, it will seem to be pointless.
+- CA actually scale up the number of nodes in your cluster and hence increase actual physical resources available. However since it work at the whole-cluster level it is more coarse grained. It also requires integration against cloud vendor's API (to provision more VM instances).
+
+Both of them solves part of the issue and should be used together. Doing so let us have a separation of concern/decoupling - allowing application developer to think about scaling purely in terms of abstract amount of compute resources, while letting CA handle the underlying hardware backing it up.
+
+(Note: The default CA scales based on the total amount of resources requested over all the Pods, plus pods being in pending state (suggesting resource pressure). Some may prefer to monitor the actual amount of cpu/ram utilization in the VM for scaling decision instead (say by using the auto-scaling group feature in the cloud). One should also note that CA does have some delay - both in detection and in the time it takes for the cloud to provision VM. Beware of hysterisis, or worse, getting stuck.)
 
 ## Conclusion
 
 
 ## Reference
 
+### Github repos
+
 https://github.com/jeremyrickard/rps-demo-prometheus - A sample app that uses Prometheus and Kubernetes Custom Metrics to drive an HPA
 
 https://github.com/mmatur/prometheus-traefik - Treafik and prometheus integration
+
+https://github.com/zalando-incubator/kube-metrics-adapter - General purpose metrics adapter for Kubernetes HPA metrics
+
+### Microk8s
+
+https://www.robert-jensen.dk/posts/2021-microk8s-with-traefik-and-metallb/
+
+### Prometheus and Traefik
 
 https://fabianlee.org/2022/07/07/prometheus-monitoring-a-custom-service-using-servicemonitor-and-prometheusrule/
 
@@ -137,12 +258,6 @@ https://traefik.io/blog/capture-traefik-metrics-for-apps-on-kubernetes-with-prom
 
 https://traefik.io/blog/install-and-configure-traefik-with-helm/
 
-https://www.robert-jensen.dk/posts/2021-microk8s-with-traefik-and-metallb/
-
-https://github.com/zalando-incubator/kube-metrics-adapter - General purpose metrics adapter for Kubernetes HPA metrics
-
-https://livewyer.io/blog/2019/05/28/horizontal-pod-autoscaling/
-
 https://www.civo.com/learn/monitoring-k3s-with-the-prometheus-operator-and-custom-email-alerts
 
 https://docs.fuga.cloud/how-to-monitor-your-traefik-ingress-with-prometheus-and-grafana
@@ -151,7 +266,15 @@ https://dev.to/karvounis/advanced-traefik-configuration-tutorial-tls-dashboard-p
 
 https://www.civo.com/learn/application-performance-monitoring-with-prometheus-and-grafana-on-kubernetes
 
+### Horizontal Pod Autoscaling
 
+https://livewyer.io/blog/2019/05/28/horizontal-pod-autoscaling/
+
+### Cluster Autoscalar
+
+https://stackoverflow.com/questions/63163042/kubernetes-node-cpu-utilization
+
+https://www.kubecost.com/kubernetes-autoscaling/kubernetes-cluster-autoscaler/
 
 --
 
