@@ -53,6 +53,8 @@ Although traditional RDBMS solved a part of it with ACID transactions (caveat: p
 
 As reasoning about concurrency in general is hard (interleaving), it would be nice if there are systematic design patterns that are known to work well. Well here are some that I particularly like:
 
+(Shameless plug: I'm prototyping out the first idea in my repo https://github.com/lemonteaa/microservice-patterns)
+
 - Idempotency + Distributed Saga + Transactional Outbox: Coming from the microservice/event-driven world, these solutions are still applicable even if you don't go all in on microservice.
   - Problem formulation: You want to do a business transaction (*not* just a DB transaction), that involves doing a sequence of actions on different places. These actions can be normal DB writes, as well as external API calls outside of your control. You want it to have as much of the usual ACID properties as it can.
   - A naive solution may involves just doing external API calls in a DB transaction. But what if it fails? We will need a way to rollback the api call as well. There have been idea along the line of a long-lived, distributed transaction, however, those requires special transaction coordinator, and requires that all participants conform to a rather strict spec.

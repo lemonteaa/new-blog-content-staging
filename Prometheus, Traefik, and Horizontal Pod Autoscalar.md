@@ -276,6 +276,10 @@ https://stackoverflow.com/questions/63163042/kubernetes-node-cpu-utilization
 
 https://www.kubecost.com/kubernetes-autoscaling/kubernetes-cluster-autoscaler/
 
+### Additional Reference
+
+https://devconnected.com/how-to-setup-grafana-and-prometheus-on-linux/
+
 --
 
 - Example of what operator offers that are not in a helm chart: ability to upgrade it correctly.
