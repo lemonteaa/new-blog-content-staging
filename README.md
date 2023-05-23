@@ -13,6 +13,7 @@ This is a staging area where I put my working drafts of posts planned for the re
 - [Hitchhiker's Guide to OpenStack](https://github.com/lemonteaa/new-blog-content-staging/blob/main/Hitchhiker's%20Guide%20to%20OpenStack.md)
 - [Experience Sharing and Opinion Piece: DIY Clojure Web Framework? Lesson Learned](https://github.com/lemonteaa/new-blog-content-staging/blob/main/Experience%20Sharing%20and%20Opinion%20Piece%20DIY%20Clojure%20Web%20Framework%20Lesson%20Learned.md)
 - [Unpeeling Clojurescript Tooling - Shadow-cljs](https://github.com/lemonteaa/new-blog-content-staging/blob/main/Unpeeling%20Clojurescript%20Tooling%20Shadow%20cljs.md)
+- [The Quest for subquadratic attention and long context length in LLM - Hyena Operator](https://github.com/lemonteaa/new-blog-content-staging/blob/main/The%20Quest%20for%20subquadratic%20attention%20and%20long%20context%20length%20in%20LLM%20-%20Hyena%20Operator.md)
 
 
 ## See Also
