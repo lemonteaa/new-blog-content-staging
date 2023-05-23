@@ -74,7 +74,9 @@ So here's the plan. We know that convolutional filter is able to, to some extent
 
 First thing is that since attention is a data-controlled linear operator, we need to modify the CNN to conform to this IO format. A CNN is basically an interleaved, multi-layer network where on each layer, we "do a convolution, then apply some non-linearity". So what we do is to make both of them a (learned) linear matrix. A convolutional filter *is* already equivalently a (Toeplitz/Circulant) matrix [^1]. For the nonlinearity, we can choose something like the nonlinear elementwise activation function - the author settled on a data-controlled diagonal matrix (data-control is important here because the convolutional filter aren't data controlled, so this is the only place we have left to do it).
 
-![Figure representing the proposed Hyena Operator in their paper](https://hazyresearch.stanford.edu/static/posts/2023-03-07-hyena/diagram.png)
+![Figure representing the proposed Hyena Operator in their paper](https://github.com/lemonteaa/new-blog-content-staging/blob/main/hyena_operator.png)
+
+(Figure from authors, source: https://hazyresearch.stanford.edu/static/posts/2023-03-07-hyena/diagram.png )
 
 Notes:
 
