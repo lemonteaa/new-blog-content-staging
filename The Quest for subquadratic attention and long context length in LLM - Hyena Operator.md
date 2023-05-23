@@ -172,7 +172,7 @@ If you're read to this point, congratulation! You now kind of understand Hyena O
 Since I find this to be quite tricky to read, having so many different properties in an interlocking way, maybe summarizing things in a neat table would help:
 
 Desired Property | Hyena feature to satisfy it | Component
-----+----+----
+----|----|----
 Expressive class of function | Neural network of neural network | Top level architecture, Filter
 Sublinear parameter scaling | Implicit parametrization of the filter's neural network | Filter
 Unrestricted context/long distance associative recall | Long convolution | Filter
